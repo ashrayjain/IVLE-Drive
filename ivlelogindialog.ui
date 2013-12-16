@@ -2,24 +2,27 @@
 <ui version="4.0">
  <class>IVLELoginDialog</class>
  <widget class="QDialog" name="IVLELoginDialog">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>301</width>
-    <height>201</height>
+    <height>205</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>301</width>
-    <height>201</height>
+    <height>205</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>301</width>
-    <height>201</height>
+    <height>205</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -31,19 +34,19 @@
      <x>0</x>
      <y>0</y>
      <width>300</width>
-     <height>200</height>
+     <height>211</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
      <width>300</width>
-     <height>200</height>
+     <height>211</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
      <width>300</width>
-     <height>200</height>
+     <height>211</height>
     </size>
    </property>
    <property name="contextMenuPolicy">
@@ -64,5 +67,26 @@
   </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>webView</sender>
+   <signal>loadFinished(bool)</signal>
+   <receiver>IVLELoginDialog</receiver>
+   <slot>handleUrlChange(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>149</x>
+     <y>99</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>150</x>
+     <y>100</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <signal>urlChange(QWidget*)</signal>
+  <slot>handleUrlChange(bool)</slot>
+ </slots>
 </ui>

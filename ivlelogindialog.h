@@ -2,6 +2,7 @@
 #define IVLELOGINDIALOG_H
 
 #include <QDialog>
+#include <QtWebKitWidgets>
 
 namespace Ui {
 class IVLELoginDialog;
@@ -14,6 +15,12 @@ class IVLELoginDialog : public QDialog
 public:
     explicit IVLELoginDialog(QWidget *parent = 0);
     ~IVLELoginDialog();
+
+private slots:
+    void handleUrlChange(bool ok);
+
+signals:
+    void urlChanged(QWebView* webView);
 
 private:
     Ui::IVLELoginDialog *ui;

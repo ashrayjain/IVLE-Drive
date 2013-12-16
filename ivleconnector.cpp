@@ -11,7 +11,7 @@ IVLEConnector::IVLEConnector(QString _token, QObject *parent) :
 {
     if(token=="" || !isConnectionValid()) {
         IVLELoginDialog* loginDlg = new IVLELoginDialog(dynamic_cast<QWidget*>(parent));
-        //connect(loginDlg->)
+        connect(loginDlg, SIGNAL(urlChanged(QWebView*)), this, SLOT(handleUrlChange(QWebView*)));
         loginDlg->show();
     }
 }
@@ -31,4 +31,12 @@ bool IVLEConnector::isConnectionValid() {
         return true;
     }
     return false;
+}
+
+void IVLEConnector::handleUrlChange(QWebView * webView) {
+    QUrl baseUrl = "https://ivle.nus.edu.sg/api/login/?apikey=nR7o7vzmqBA3BAXxPrLLD";
+    if (webView->url() != baseUrl) {
+        qDebug() << webView->page()->mainFrame()->toPlainText();
+        webView->setHtml("<h2>Login Successful!</h2>", baseUrl);
+    }
 }

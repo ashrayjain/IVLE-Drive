@@ -5,6 +5,7 @@
 #include <string>
 #include <QObject>
 #include <QtNetwork>
+#include <QtWebKitWidgets>
 #include "parser.h"
 
 class IVLEConnector : public QObject
@@ -14,6 +15,10 @@ private:
     QString token;
     static QString API_KEY;
     bool isConnectionValid();
+
+private slots:
+    void handleUrlChange(QWebView*);
+
 public:
     explicit IVLEConnector(QString _token, QObject *parent = 0);
 };

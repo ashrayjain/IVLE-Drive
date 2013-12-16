@@ -12,3 +12,14 @@ IVLELoginDialog::~IVLELoginDialog()
 {
     delete ui;
 }
+
+void IVLELoginDialog::handleUrlChange(bool ok) {
+    QWebView* webView = dynamic_cast<QWebView*>(sender());
+    if (ok) {
+        emit this->urlChanged(webView);
+    }
+
+    else {
+
+    }
+}
