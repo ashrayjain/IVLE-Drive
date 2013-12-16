@@ -16,11 +16,14 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     parser.cpp \
     ivleconnector.cpp \
-    storage.cpp
+    storage.cpp \
+    ivlelogindialog.cpp
 
 HEADERS  += mainwindow.h \
     parser.h \
     ivleconnector.h \
-    storage.h
+    storage.h \
+    ivlelogindialog.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    ivlelogindialog.ui

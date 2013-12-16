@@ -1,5 +1,5 @@
 #include "ivleconnector.h"
-#include "ivlelogin.h"
+#include "ivlelogindialog.h"
 
 using namespace std;
 
@@ -10,7 +10,7 @@ IVLEConnector::IVLEConnector(QString _token, QObject *parent) :
     QObject(parent)
 {
     if(token=="" || !isConnectionValid()) {
-        IVLELogin* loginDlg = new IVLELogin(dynamic_cast<QWidget*>(parent));
+        IVLELoginDialog* loginDlg = new IVLELoginDialog(dynamic_cast<QWidget*>(parent));
         //connect(loginDlg->)
         loginDlg->show();
     }
