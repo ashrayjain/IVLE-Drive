@@ -1,6 +1,7 @@
 #include "storage.h"
 #include <QFile>
 #include <QTextStream>
+#include <QDebug>
 
 QString Storage::readToken() {
     QFile file(".token");

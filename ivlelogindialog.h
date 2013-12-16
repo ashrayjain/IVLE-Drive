@@ -20,7 +20,7 @@ private slots:
     void handleUrlChange(bool ok);
 
 signals:
-    void urlChanged(QWebView* webView);
+    void tokenChanged(QString newToken);
 
 private:
     Ui::IVLELoginDialog *ui;

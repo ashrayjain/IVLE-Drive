@@ -3,24 +3,30 @@
 
 using namespace std;
 
-QString IVLEConnector::API_KEY = "R7o7vzmqBA3BAXxPrLLD";
+QString IVLEConnector::API_KEY = "nR7o7vzmqBA3BAXxPrLLD";
 
 IVLEConnector::IVLEConnector(QString _token, QObject *parent) :
     token(_token),
     QObject(parent)
 {
+    //connect(this, SIGNAL(tokenChange(QString)), parent, SLOT(slotTokenChange(QString)));
     if(token=="" || !isConnectionValid()) {
-        IVLELoginDialog* loginDlg = new IVLELoginDialog(dynamic_cast<QWidget*>(parent));
-        connect(loginDlg, SIGNAL(urlChanged(QWebView*)), this, SLOT(handleUrlChange(QWebView*)));
-        loginDlg->show();
+        status = INVALID_TOKEN;
+        //IVLELoginDialog* loginDlg = new IVLELoginDialog(dynamic_cast<QWidget*>(parent));
+        //connect(loginDlg, SIGNAL(urlChanged(QWebView*)), this, SLOT(handleUrlChange(QWebView*)));
+        //loginDlg->exec();
+        //loginDlg->close();
     }
+    else
+        status = VALID_TOKEN;
 }
 
 bool IVLEConnector::isConnectionValid() {
-    QNetworkReply *reply = QNetworkAccessManager().get(QNetworkRequest(QUrl("https://ivle.nus.edu.sg/api/Lapi.svc/Validate?APIKey="+API_KEY+"&Token="+token)));
+    QNetworkAccessManager nam;
+    QNetworkReply *reply = nam.get(QNetworkRequest(QUrl("https://ivle.nus.edu.sg/api/Lapi.svc/Validate?APIKey="+API_KEY+"&Token="+token)));
 
     QEventLoop loop;
-    QObject::connect(reply, SIGNAL(readyRead()), &loop, SLOT(quit()));
+    QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();
 
     QString replyStr(reply->readAll());
@@ -33,10 +39,15 @@ bool IVLEConnector::isConnectionValid() {
     return false;
 }
 
+bool IVLEConnector::getWorkbins() {
+    return status==VALID_TOKEN;
+}
+
 void IVLEConnector::handleUrlChange(QWebView * webView) {
     QUrl baseUrl = "https://ivle.nus.edu.sg/api/login/?apikey=nR7o7vzmqBA3BAXxPrLLD";
     if (webView->url() != baseUrl) {
-        qDebug() << webView->page()->mainFrame()->toPlainText();
-        webView->setHtml("<h2>Login Successful!</h2>", baseUrl);
+        token = webView->page()->mainFrame()->toPlainText();
+        emit tokenChange(token);
+        dynamic_cast<QDialog*>(webView->parent())->close();
     }
 }

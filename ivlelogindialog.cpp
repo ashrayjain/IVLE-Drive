@@ -15,11 +15,11 @@ IVLELoginDialog::~IVLELoginDialog()
 
 void IVLELoginDialog::handleUrlChange(bool ok) {
     QWebView* webView = dynamic_cast<QWebView*>(sender());
+    QUrl baseUrl = "https://ivle.nus.edu.sg/api/login/?apikey=nR7o7vzmqBA3BAXxPrLLD";
     if (ok) {
-        emit this->urlChanged(webView);
+        if (webView->url() != baseUrl)
+            emit tokenChanged(webView->page()->mainFrame()->toPlainText());
     }
-
-    else {
-
-    }
+    else
+        webView->setHtml("<h2>Oops! Something's not right with your network!</h2>");
 }
