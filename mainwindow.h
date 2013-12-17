@@ -17,17 +17,16 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-public slots:
-    void slotTokenChange(QString);
-
 private slots:
-    void on_actionLogin_triggered();
-
+    void slotTokenChanged(bool tokenValidity);
+    void newTokenReceived(QString newToken);
+    void loginRequired();
     void on_syncButton_clicked();
 
 private:
     Ui::MainWindow *ui;
     IVLEConnector* ivle;
+    void initIVLELoginDlg();
 };
 
 #endif // MAINWINDOW_H

@@ -18,7 +18,8 @@ void IVLELoginDialog::handleUrlChange(bool ok) {
     QUrl baseUrl = "https://ivle.nus.edu.sg/api/login/?apikey=nR7o7vzmqBA3BAXxPrLLD";
     if (ok) {
         if (webView->url() != baseUrl)
-            emit tokenChanged(webView->page()->mainFrame()->toPlainText());
+            emit newTokenReceived(webView->page()->mainFrame()->toPlainText());
+
     }
     else
         webView->setHtml("<h2>Oops! Something's not right with your network!</h2>");

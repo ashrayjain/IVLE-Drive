@@ -2,35 +2,48 @@
 #include "ui_mainwindow.h"
 #include "ivleconnector.h"
 #include "ivlelogindialog.h"
-#include "storage.h"
+
+// Green - #98FF75
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    ivle(new IVLEConnector(this))
 {
     ui->setupUi(this);
-    ivle = new IVLEConnector(Storage::readToken());
-    on_syncButton_clicked();
+    ui->statusBar->showMessage("Trying to connect with IVLE..");
+    connect(ivle, SIGNAL(tokenChanged(bool)), this, SLOT(slotTokenChanged(bool)));
+    ivle->initiateTokenValidation();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete ivle;
 }
 
-void MainWindow::slotTokenChange(QString newToken) {
+void MainWindow::slotTokenChanged(bool tokenValidity) {
+    if (tokenValidity)
+        ivle->getWorkbins();
+    else
+        initIVLELoginDlg();
+}
+
+void MainWindow::initIVLELoginDlg() {
+    IVLELoginDialog* dlg = new IVLELoginDialog(this);
+    connect(dlg, SIGNAL(newTokenReceived(QString)), this, SLOT(newTokenReceived(QString)));
+    dlg->exec();
+    dlg->close();
+}
+
+void MainWindow::newTokenReceived(QString newToken) {
     dynamic_cast<QDialog*>(sender())->close();
-    delete ivle;
-    ivle = new IVLEConnector(newToken);
-    Storage::writeToken(newToken);
-    ivle->getWorkbins();
+    ivle->setToken(newToken);
 }
 
-void MainWindow::on_actionLogin_triggered()
+void MainWindow::loginRequired()
 {
     IVLELoginDialog* loginDlg = new IVLELoginDialog(this);
-    connect(loginDlg, SIGNAL(tokenChanged(QString)), this, SLOT(slotTokenChange(QString)));
+    connect(loginDlg, SIGNAL(tokenChanged(QString)), this, SLOT(slotTokenChanged(QString)));
     loginDlg->exec();
     loginDlg->close();
 }
@@ -38,7 +51,7 @@ void MainWindow::on_actionLogin_triggered()
 void MainWindow::on_syncButton_clicked()
 {
     if(!ivle->getWorkbins()) {
-        on_actionLogin_triggered();
+        loginRequired();
         ivle->getWorkbins();
     }
 }

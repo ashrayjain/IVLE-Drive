@@ -20,7 +20,7 @@ private slots:
     void handleUrlChange(bool ok);
 
 signals:
-    void tokenChanged(QString newToken);
+    void newTokenReceived(QString newToken);
 
 private:
     Ui::IVLELoginDialog *ui;
