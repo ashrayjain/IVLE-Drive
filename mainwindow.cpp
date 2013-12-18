@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ivle(new IVLEConnector(this))
 {
     ui->setupUi(this);
+    ui->syncButton->setDisabled(true);
     ui->statusBar->showMessage("Trying to connect with IVLE..");
     connect(ivle, SIGNAL(tokenChanged(bool)), this, SLOT(slotTokenChanged(bool)));
     ivle->initiateTokenValidation();
@@ -23,9 +24,21 @@ MainWindow::~MainWindow()
 
 void MainWindow::slotTokenChanged(bool tokenValidity) {
     if (tokenValidity)
-        ivle->getWorkbins();
+        on_syncButton_clicked();
     else
         initIVLELoginDlg();
+}
+
+void MainWindow::on_syncButton_clicked() {
+    ui->statusBar->showMessage("Syncing..");
+    ivle->syncWorkbins();
+    //ui->treeView->header()->model()->setHeaderData(0, Qt::Orientation::Horizontal, QVariant("List of Workbins"));
+    //ui->treeView->setModel(model);
+}
+
+void MainWindow::syncCompleted() {
+    ui->statusBar->showMessage("In Sync");
+    ui->syncButton->setDisabled(false);
 }
 
 void MainWindow::initIVLELoginDlg() {
@@ -36,22 +49,6 @@ void MainWindow::initIVLELoginDlg() {
 }
 
 void MainWindow::newTokenReceived(QString newToken) {
-    dynamic_cast<QDialog*>(sender())->close();
+    qobject_cast<QDialog*>(sender())->close();
     ivle->setToken(newToken);
-}
-
-void MainWindow::loginRequired()
-{
-    IVLELoginDialog* loginDlg = new IVLELoginDialog(this);
-    connect(loginDlg, SIGNAL(tokenChanged(QString)), this, SLOT(slotTokenChanged(QString)));
-    loginDlg->exec();
-    loginDlg->close();
-}
-
-void MainWindow::on_syncButton_clicked()
-{
-    if(!ivle->getWorkbins()) {
-        loginRequired();
-        ivle->getWorkbins();
-    }
 }

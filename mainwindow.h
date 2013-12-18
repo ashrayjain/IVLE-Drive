@@ -20,8 +20,10 @@ public:
 private slots:
     void slotTokenChanged(bool tokenValidity);
     void newTokenReceived(QString newToken);
-    void loginRequired();
     void on_syncButton_clicked();
+
+public slots:
+    void syncCompleted();
 
 private:
     Ui::MainWindow *ui;
