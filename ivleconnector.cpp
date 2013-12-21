@@ -4,16 +4,19 @@
 #include "ivlelogindialog.h"
 #include "storage.h"
 
+
 using namespace std;
 
 QString IVLEConnector::API_KEY      = "nR7o7vzmqBA3BAXxPrLLD";
-QString IVLEConnector::INVALID_ID   = "00000000-0000-0000-0000-000000000000";
+QString IVLEConnector::INVALID_ID   = "0000000-0000-0000-0000-000000000000";
 
 IVLEConnector::IVLEConnector(QObject *parent) :
     token(Storage::readToken()),
     QObject(parent),
     status(INVALID_TOKEN),
-    nam(new QNetworkAccessManager())
+    nam(new QNetworkAccessManager()),
+    data(new WorkbinsViewModel()),
+    root(data->invisibleRootItem())
 {    
 }
 
@@ -27,15 +30,25 @@ void IVLEConnector::syncWorkbins() {
         emit tokenChanged(false);
 }
 
+WorkbinsViewModel *IVLEConnector::workbinsModel()
+{
+    return data;
+}
+
 void IVLEConnector::populateCourseID(QJsonObject result)
 {
+    QList<QVariant> test;
+    test.append("No Workbins Here! :)");
     QString id = result["ID"].toString();
     if (id != INVALID_ID) {
-        QMap<QString, QString> info;
-        info["Code"] = result["CourseCode"].toString();
-        info["Name"] = result["CourseName"].toString();
-        data[id] = info;
-        qDebug()<<data;
+        QList<QVariant> data;
+        data.append(result["CourseCode"].toString()+" "+ result["CourseName"].toString());
+        WorkbinsViewItem* child = new WorkbinsViewItem(data);
+        root->appendChild(child);
+        child->appendChild(new WorkbinsViewItem(test));
+        child->appendChild(new WorkbinsViewItem(test));
+        child->appendChild(new WorkbinsViewItem(test));
+        qDebug() << data;
     }
 }
 
@@ -48,18 +61,8 @@ void IVLEConnector::populateCourseIDs() {
         QJsonArray results = obj["Results"].toArray();
         for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
             populateCourseID((*it).toObject());
+        emit syncCompleted();
     }
-    /*
-    QStandardItemModel* model = new QStandardItemModel(this);
-    QStandardItem *parentItem = model->invisibleRootItem();
-    for (int i = 0; i < 4; ++i) {
-        QStandardItem *item = new QStandardItem(QString("item %0").arg(i));
-        item->setCheckable(true);
-        item->setCheckState(Qt::Unchecked);
-        parentItem->appendRow(item);
-        parentItem = item;
-    }
-    */
 }
 
 void IVLEConnector::initiateTokenValidation() {

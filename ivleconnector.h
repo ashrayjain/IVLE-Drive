@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QtNetwork>
+#include "workbinsviewitem.h"
+#include "workbinsviewmodel.h"
 
 class IVLEConnector : public QObject
 {
@@ -16,8 +18,8 @@ private:
     QString token;
     STATUS status;
     QNetworkAccessManager *nam;
-    //TODO: Create a proper Module DataStructure
-    QMap<QString, QMap<QString, QString>> data;
+    WorkbinsViewModel* data;
+    WorkbinsViewItem* root;
 
     void networkConnect(const QUrl&, const QObject*, const char*);
     void populateCourseID(QJsonObject result);
@@ -29,11 +31,13 @@ public slots:
 
 signals:
     void tokenChanged(bool tokenValidity);
+    void syncCompleted();
 
 public:
     explicit IVLEConnector(QObject *parent = 0);
     void setToken(QString newToken);
     void syncWorkbins();
+    WorkbinsViewModel* workbinsModel();
     ~IVLEConnector();
 };
 

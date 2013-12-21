@@ -17,13 +17,25 @@ SOURCES += main.cpp\
     parser.cpp \
     ivleconnector.cpp \
     storage.cpp \
-    ivlelogindialog.cpp
+    ivlelogindialog.cpp \
+    filelistdelegate.cpp \
+    filelistmodel.cpp \
+    workbinsviewitem.cpp \
+    workbinsviewmodel.cpp
 
 HEADERS  += mainwindow.h \
     parser.h \
     ivleconnector.h \
     storage.h \
-    ivlelogindialog.h
+    ivlelogindialog.h \
+    filelistdelegate.h \
+    filelistmodel.h \
+    workbinsviewitem.h \
+    workbinsviewmodel.h
 
 FORMS    += mainwindow.ui \
     ivlelogindialog.ui
+
+OTHER_FILES +=
+
+RESOURCES +=
