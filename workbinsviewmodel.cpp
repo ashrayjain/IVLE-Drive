@@ -7,8 +7,10 @@
 
 WorkbinsViewModel::WorkbinsViewModel(QObject *parent)
     : QAbstractItemModel(parent),
-      rootItem(new WorkbinsViewItem(QList<QVariant>()))
+      rootItem(new WorkbinsViewItem())
 {
+    connect(rootItem, SIGNAL(childCheckBoxChangedSignal()), this, SLOT(childCheckBoxChanged()));
+    connect(rootItem, SIGNAL(childAdded(WorkbinsViewItem*)), this, SLOT(childAddedSlot(WorkbinsViewItem*)));
 }
 
 WorkbinsViewModel::~WorkbinsViewModel()
@@ -24,11 +26,9 @@ int WorkbinsViewModel::columnCount(const QModelIndex &) const
 bool WorkbinsViewModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
     if (index.isValid() && role == Qt::CheckStateRole) {
-        static_cast<WorkbinsViewItem*>(index.internalPointer())->setChecked(value);
-        QModelIndex curr = index;
-        while (curr.isValid())
-            curr = curr.parent();
-        emit dataChanged(curr, curr);
+        WorkbinsViewItem* item = static_cast<WorkbinsViewItem*>(index.internalPointer());
+        item->setChecked(value);
+        emit dataChanged(QModelIndex(), createIndex(item->parent()->childCount()-1, 0, item->parent()));
         return true;
     }
     return false;
@@ -37,6 +37,23 @@ bool WorkbinsViewModel::setData(const QModelIndex &index, const QVariant &value,
 WorkbinsViewItem *WorkbinsViewModel::invisibleRootItem()
 {
     return rootItem;
+}
+
+QModelIndex &WorkbinsViewModel::rootIndex()
+{
+    return this->createIndex(0, 0, rootItem);
+}
+
+void WorkbinsViewModel::childAddedSlot(WorkbinsViewItem* newlyAddedNode)
+{
+    connect(newlyAddedNode, SIGNAL(childAdded(WorkbinsViewItem*)), this, SLOT(childAddedSlot(WorkbinsViewItem*)));
+    connect(newlyAddedNode, SIGNAL(childCheckBoxChangedSignal()),this, SLOT(childCheckBoxChanged()));
+}
+
+void WorkbinsViewModel::childCheckBoxChanged()
+{
+    WorkbinsViewItem* item = static_cast<WorkbinsViewItem*>(sender());
+    emit dataChanged(QModelIndex(), createIndex(item->parent()->childCount()-1, 0, item->parent()));
 }
 
 QVariant WorkbinsViewModel::data(const QModelIndex &index, int role) const
@@ -49,8 +66,9 @@ QVariant WorkbinsViewModel::data(const QModelIndex &index, int role) const
     case Qt::CheckStateRole:
         return item->data(role);
     case Qt::DisplayRole:
+        return item->data(0);
     case Qt::ToolTipRole:
-        return item->data(index.column());
+        return item->data(1);
     default:
         return QVariant();
     }
@@ -62,15 +80,6 @@ Qt::ItemFlags WorkbinsViewModel::flags(const QModelIndex &index) const
         return 0;
     return QAbstractItemModel::flags(index)|Qt::ItemIsUserCheckable;
 }
-
-//QVariant WorkbinsViewModel::headerData(int section, Qt::Orientation orientation,
-//                               int role) const
-//{
-//    if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
-//        return rootItem->data(section);
-
-//    return QVariant();
-//}
 
 QModelIndex WorkbinsViewModel::index(int row, int column, const QModelIndex &parent)
             const

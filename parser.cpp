@@ -2,6 +2,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include "parser.h"
+#include <QDebug>
 
 using namespace std;
 

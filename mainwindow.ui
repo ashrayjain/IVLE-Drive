@@ -55,23 +55,26 @@
           </property>
           <property name="minimumSize">
            <size>
-            <width>300</width>
+            <width>150</width>
             <height>0</height>
            </size>
           </property>
           <property name="font">
            <font>
-            <family>Segoe UI Semibold</family>
-            <pointsize>16</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
+            <family>Segoe UI</family>
+            <pointsize>15</pointsize>
+            <weight>50</weight>
+            <bold>false</bold>
            </font>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
           </property>
-          <property name="alternatingRowColors">
-           <bool>false</bool>
+          <property name="verticalScrollMode">
+           <enum>QAbstractItemView::ScrollPerPixel</enum>
+          </property>
+          <property name="uniformRowHeights">
+           <bool>true</bool>
           </property>
           <property name="animated">
            <bool>true</bool>
@@ -81,24 +84,15 @@
           </attribute>
          </widget>
          <widget class="QListView" name="fileListView">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
           <property name="minimumSize">
            <size>
-            <width>400</width>
+            <width>150</width>
             <height>0</height>
            </size>
           </property>
           <property name="font">
            <font>
-            <family>Segoe UI Semibold</family>
-            <pointsize>14</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
+            <pointsize>15</pointsize>
            </font>
           </property>
           <property name="editTriggers">
@@ -106,6 +100,18 @@
           </property>
           <property name="showDropIndicator" stdset="0">
            <bool>false</bool>
+          </property>
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="gridSize">
+           <size>
+            <width>100</width>
+            <height>34</height>
+           </size>
+          </property>
+          <property name="uniformItemSizes">
+           <bool>true</bool>
           </property>
          </widget>
         </widget>

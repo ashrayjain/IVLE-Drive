@@ -3,12 +3,14 @@
 #include "ivleconnector.h"
 #include "ivlelogindialog.h"
 #include "storage.h"
+#include "filedownloader.h"
 
 
 using namespace std;
 
 QString IVLEConnector::API_KEY      = "nR7o7vzmqBA3BAXxPrLLD";
-QString IVLEConnector::INVALID_ID   = "0000000-0000-0000-0000-000000000000";
+QString IVLEConnector::INVALID_ID   = "00000000-0000-0000-0000-000000000000";
+QString IVLEConnector::baseUrl      = "https://ivle.nus.edu.sg/api/Lapi.svc/";
 
 IVLEConnector::IVLEConnector(QObject *parent) :
     token(Storage::readToken()),
@@ -23,8 +25,11 @@ IVLEConnector::IVLEConnector(QObject *parent) :
 void IVLEConnector::syncWorkbins() {
     qDebug() << "I'm Syncing Workbins";
     if (status==VALID_TOKEN) {
-        QUrl url("https://ivle.nus.edu.sg/api/Lapi.svc/Modules_Student?APIKey="+API_KEY+"&AuthToken="+token+"&IncludeAllInfo=false");
-        networkConnect(url, this, SLOT(populateCourseIDs()));
+        QUrlQuery query;
+        query.addQueryItem("APIKey", API_KEY);
+        query.addQueryItem("AuthToken", token);
+        query.addQueryItem("IncludeAllInfo", "false");
+        networkConnect("Modules_Student", query, this, SLOT(fetchModules()));
     }
     else
         emit tokenChanged(false);
@@ -35,48 +40,126 @@ WorkbinsViewModel *IVLEConnector::workbinsModel()
     return data;
 }
 
-void IVLEConnector::populateCourseID(QJsonObject result)
+QModelIndex& IVLEConnector::rootIndex()
 {
-    QList<QVariant> test;
-    test.append("No Workbins Here! :)");
-    QString id = result["ID"].toString();
-    if (id != INVALID_ID) {
-        QList<QVariant> data;
-        data.append(result["CourseCode"].toString()+" "+ result["CourseName"].toString());
-        WorkbinsViewItem* child = new WorkbinsViewItem(data);
-        root->appendChild(child);
-        child->appendChild(new WorkbinsViewItem(test));
-        child->appendChild(new WorkbinsViewItem(test));
-        child->appendChild(new WorkbinsViewItem(test));
-        qDebug() << data;
-    }
+    return data->rootIndex().child(0,0);
 }
 
-void IVLEConnector::populateCourseIDs() {
+void IVLEConnector::initiateFetchModuleInfo(QJsonObject result)
+{
+    QUrlQuery query;
+    query.addQueryItem("APIKey",        API_KEY);
+    query.addQueryItem("AuthToken",     token);
+    query.addQueryItem("CourseID",      result["ID"].toString());
+    query.addQueryItem("CourseCode",    result["CourseCode"].toString());
+    query.addQueryItem("CourseName",    result["CourseName"].toString());
+
+    networkConnect("Workbins", query, this, SLOT(fetchModuleInfo()));
+}
+
+void IVLEConnector::addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin)
+{
+    WorkbinsViewItem *child = new WorkbinsViewItem();
+    addDataToItem(child, workbin["Title"].toString(), workbin["Title"].toString());
+    node->appendChild(child);
+
+    QJsonArray folders = workbin["Folders"].toArray();
+    for (QJsonArray::const_iterator it = folders.constBegin(); it != folders.constEnd(); it++)
+        addFolderToModel(child, (*it).toObject());
+}
+
+void IVLEConnector::addFolderToModel(WorkbinsViewItem *node, QJsonObject &folder)
+{
+    WorkbinsViewItem *child = new WorkbinsViewItem();
+    addDataToItem(child, folder["FolderName"].toString(), folder["FolderName"].toString());
+    node->appendChild(child);
+
+    QJsonArray folders = folder["Folders"].toArray();
+    for (QJsonArray::const_iterator it = folders.constBegin(); it != folders.constEnd(); it++)
+        addFolderToModel(child, (*it).toObject());
+
+    QJsonArray files = folder["Files"].toArray();
+    QList<QJsonObject> filesData;
+    for (QJsonArray::const_iterator it = files.constBegin(); it != files.constEnd(); it++)
+        addFileToModel(filesData, (*it).toObject());
+
+    addDataToItem(child, folder["FolderName"].toString(), folder["FolderName"].toString(), filesData);
+}
+
+void IVLEConnector::addFileToModel(QList<QJsonObject> &node, QJsonObject &file)
+{
+    QJsonObject fileData;
+    fileData["name"] = file["FileName"].toString();
+    fileData["id"] = file["ID"].toString();
+    fileData["type"] = file["FileType"].toString();
+    FileDownloader* t = new FileDownloader(token, file["ID"].toString(), file["FileName"].toString(), this);
+    node.append(fileData);
+}
+
+void IVLEConnector::addDataToItem(WorkbinsViewItem *node, QString &code, QString &name, QList<QJsonObject> &data)
+{
+    node->appendData(QVariant(code));
+    node->appendData(QVariant(name));
+    node->setFileData(data);
+}
+
+void IVLEConnector::fetchModules() {
     QJsonObject obj = Parser::jsonify(qobject_cast<QNetworkReply*>(sender())->readAll());
     sender()->deleteLater();
     if (obj["Comments"].toString() == "Invalid login!")
         emit tokenChanged(false);
     else {
         QJsonArray results = obj["Results"].toArray();
+        noOfModules = results.size();
+
+        WorkbinsViewItem* rootNode = new WorkbinsViewItem();
+        addDataToItem(rootNode, QString("My Modules"), QString(""));
+        root->appendChild(rootNode);
+        root = rootNode;
+
         for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
-            populateCourseID((*it).toObject());
-        emit syncCompleted();
+            initiateFetchModuleInfo((*it).toObject());
     }
+}
+
+void IVLEConnector::fetchModuleInfo()
+{
+    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+    QUrlQuery query(reply->request().url().query());
+
+    WorkbinsViewItem* module = new WorkbinsViewItem();
+    addDataToItem(module, query.queryItemValue("CourseCode"), query.queryItemValue("CourseName"));
+    root->appendChild(module);
+
+    QJsonObject obj = Parser::jsonify(reply->readAll());
+    sender()->deleteLater();
+
+    QJsonArray results = obj["Results"].toArray();
+    for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
+        addModuleToModel(module, (*it).toObject());
+
+    noOfModules--;
+    if (noOfModules == 0)
+        emit syncCompleted();
 }
 
 void IVLEConnector::initiateTokenValidation() {
     if(token=="")
         emit tokenChanged(false);
-    else
-        networkConnect("https://ivle.nus.edu.sg/api/Lapi.svc/Validate?APIKey="+API_KEY+"&Token="+token,
-                       this,
-                       SLOT(completedTokenValidation()));
+    else {
+        QUrlQuery query;
+        query.addQueryItem("APIKey", API_KEY);
+        query.addQueryItem("Token", token);
+        networkConnect("Validate", query, this, SLOT(completedTokenValidation()));
+
+    }
 }
 
-void IVLEConnector::networkConnect(const QUrl &url, const QObject *receiver, const char* slot) {
+void IVLEConnector::networkConnect(const QString &path, const QUrlQuery &params, const QObject *receiver, const char* slot) {
+    QUrl url(baseUrl+path);
+    url.setQuery(params);
     QNetworkReply *reply = nam->get(QNetworkRequest(url));
-    QObject::connect(reply, SIGNAL(readyRead()), receiver, slot);
+    QObject::connect(reply, SIGNAL(finished()), receiver, slot);
 }
 
 void IVLEConnector::setToken(QString newToken) {

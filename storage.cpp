@@ -1,6 +1,9 @@
 #include "storage.h"
 #include <QFile>
 #include <QTextStream>
+#include <QTemporaryFile>
+#include <QFileInfo>
+#include <QFileIconProvider>
 #include <QDebug>
 
 QString Storage::readToken() {
@@ -16,4 +19,11 @@ void Storage::writeToken(QString &token) {
         return;
     QTextStream(&file)<<token;
     file.close();
+}
+
+QIcon Storage::getFileIcon(QString ext) {
+    QTemporaryFile file("XXXXXX."+ext);
+    if (file.open())
+        return QFileIconProvider().icon(QFileInfo(file.fileName()));
+    return QIcon();
 }

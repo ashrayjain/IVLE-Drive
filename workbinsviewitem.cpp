@@ -1,11 +1,13 @@
 #include "workbinsviewitem.h"
 #include <QDebug>
+#include <QApplication>
 
-WorkbinsViewItem::WorkbinsViewItem(const QList<QVariant> &data, WorkbinsViewItem *parent)
+WorkbinsViewItem::WorkbinsViewItem(WorkbinsViewItem *parent)
 {
     parentItem = parent;
-    itemData = data;
     checked = QVariant(Qt::Unchecked);
+    files = new FileListModel(QList<QJsonObject>(), this);
+    connect(files, SIGNAL(checkBoxChanged()), this, SLOT(childCheckBoxChanged()));
 }
 
 WorkbinsViewItem::~WorkbinsViewItem()
@@ -15,8 +17,12 @@ WorkbinsViewItem::~WorkbinsViewItem()
 
 void WorkbinsViewItem::appendChild(WorkbinsViewItem *item)
 {
-    childItems.append(item);
+    QList<WorkbinsViewItem*>::Iterator it = childItems.begin();
+    for (; it != childItems.end() && (*it)->data(0).toString() <= item->data(0).toString(); it++);
+    childItems.insert(it, item);
+
     item->parentItem = this;
+    emit childAdded(item);
 }
 
 WorkbinsViewItem *WorkbinsViewItem::child(int row)
@@ -41,6 +47,24 @@ QVariant WorkbinsViewItem::data(int column) const
     return itemData.value(column);
 }
 
+FileListModel *WorkbinsViewItem::fileViewModel()
+{
+    return files;
+}
+
+void WorkbinsViewItem::setFileData(QList<QJsonObject> &data)
+{
+    disconnect(files, SIGNAL(checkBoxChanged()), this, SLOT(childCheckBoxChanged()));
+    delete files;
+    files = new FileListModel(data);
+    connect(files, SIGNAL(checkBoxChanged()), this, SLOT(childCheckBoxChanged()));
+}
+
+void WorkbinsViewItem::appendData(QVariant &data)
+{
+    itemData.append(data);
+}
+
 void WorkbinsViewItem::setChecked(const QVariant& val)
 {
     checked = val;
@@ -49,16 +73,46 @@ void WorkbinsViewItem::setChecked(const QVariant& val)
     while (it != childItems.constEnd())
         (*it++)->setChecked(val);
 
+    files->setCheckedAll(val);
+    handleParents();
+    emit childCheckBoxChangedSignal();
+}
+
+WorkbinsViewItem *WorkbinsViewItem::parent()
+{
+    return parentItem;
+}
+
+void WorkbinsViewItem::childCheckBoxChanged()
+{
+    int count = files->checkBoxCount();
+    if (count == files->rowCount(QModelIndex()))
+        checked = Qt::Checked;
+    else if (count == 0)
+        checked = Qt::Unchecked;
+    else
+        checked = Qt::PartiallyChecked;
+    handleParents();
+    emit childCheckBoxChangedSignal();
+}
+
+void WorkbinsViewItem::handleParents()
+{
     WorkbinsViewItem* parent = parentItem;
     while (parent != 0) {
         int checkCount = 0;
         int rowCount = parent->childCount();
 
-        for (int i = 0; i < rowCount; i++)
+        bool partialFound = false;
+        for (int i = 0; i < rowCount && !partialFound; i++)
             if (parent->child(i)->checked == Qt::Checked)
                 checkCount++;
+            else if (parent->child(i)->checked == Qt::PartiallyChecked)
+                partialFound = true;
 
-        if (checkCount == 0)
+        if (partialFound)
+            parent->checked = Qt::PartiallyChecked;
+        else if (checkCount == 0)
             parent->checked = Qt::Unchecked;
         else if (checkCount == rowCount)
             parent->checked = Qt::Checked;
@@ -67,11 +121,6 @@ void WorkbinsViewItem::setChecked(const QVariant& val)
 
         parent = parent->parentItem;
     }
-}
-
-WorkbinsViewItem *WorkbinsViewItem::parent()
-{
-    return parentItem;
 }
 
 int WorkbinsViewItem::row() const

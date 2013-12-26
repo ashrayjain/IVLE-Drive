@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QModelIndex>
 
 namespace Ui {
 class MainWindow;
@@ -21,6 +22,7 @@ private slots:
     void slotTokenChanged(bool tokenValidity);
     void newTokenReceived(QString newToken);
     void on_syncButton_clicked();
+    void refreshFileView(QModelIndex index);
 
 public slots:
     void syncCompleted();

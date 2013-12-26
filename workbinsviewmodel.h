@@ -23,9 +23,13 @@ public:
     bool setData(const QModelIndex &index, const QVariant &value, int role);
 
     WorkbinsViewItem* invisibleRootItem();
+    QModelIndex& rootIndex();
+
+public slots:
+    void childAddedSlot(WorkbinsViewItem*);
+    void childCheckBoxChanged();
 
 private:
-    void setupModelData(const QStringList &lines, WorkbinsViewItem *parent);
     WorkbinsViewItem *rootItem;
 };
 

@@ -3,19 +3,30 @@
 
 #include <QAbstractListModel>
 #include <QObject>
+#include <QIcon>
 #include <QJsonObject>
 
 class FileListModel : public QAbstractListModel
 {
     Q_OBJECT
 public:
-    explicit FileListModel(QVector<QJsonObject> &newFileList, QObject *parent = 0);
+    explicit FileListModel(QList<QJsonObject> &newFileList, QObject *parent = 0);
     int rowCount(const QModelIndex &parent) const;
+    bool setData(const QModelIndex &index, const QVariant &value, int role);
+    void setCheckedAll(const QVariant& val);
     QVariant data(const QModelIndex &index, int role) const;
+    Qt::ItemFlags flags(const QModelIndex &index) const;
+    int checkBoxCount() const;
+
+signals:
+    void checkBoxChanged();
 
 private:
-    QVector<QJsonObject> fileList;
+    QList<QJsonObject> fileList;
+    QVector<QIcon> iconsList;
 
+    void processIcons();
+    static bool lessThan(const QJsonObject& t1, const QJsonObject& t2);
 };
 
 #endif // WORKBINDATA_H
