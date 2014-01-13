@@ -9,10 +9,11 @@ class FileDownloader : public QObject
 {
     Q_OBJECT
 public:
-    explicit FileDownloader(QString token, QString id, QString filename, QObject *parent = 0);
+    explicit FileDownloader(QString fileName, QObject *parent = 0);
+    void startDownload(QString token, QString id);
 
 signals:
-    void downloaded();
+    void fileDownloaded();
 
 private slots:
     void bytesReady();
@@ -21,6 +22,9 @@ private slots:
 private:
     QNetworkAccessManager nam;
     QFile file;
+    QByteArray buffer;
+    QString fileName;
+
     static QString baseUrl;
     static QString API_KEY;
 };

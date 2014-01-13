@@ -2,10 +2,10 @@
 #include <QDebug>
 #include <QApplication>
 
-WorkbinsViewItem::WorkbinsViewItem(WorkbinsViewItem *parent)
+WorkbinsViewItem::WorkbinsViewItem(QVariant _checked, WorkbinsViewItem *parent)
 {
     parentItem = parent;
-    checked = QVariant(Qt::Unchecked);
+    checked = _checked;
     files = new FileListModel(QList<QJsonObject>(), this);
     connect(files, SIGNAL(checkBoxChanged()), this, SLOT(childCheckBoxChanged()));
 }
@@ -56,7 +56,7 @@ void WorkbinsViewItem::setFileData(QList<QJsonObject> &data)
 {
     disconnect(files, SIGNAL(checkBoxChanged()), this, SLOT(childCheckBoxChanged()));
     delete files;
-    files = new FileListModel(data);
+    files = new FileListModel(data, this);
     connect(files, SIGNAL(checkBoxChanged()), this, SLOT(childCheckBoxChanged()));
 }
 
@@ -86,7 +86,7 @@ WorkbinsViewItem *WorkbinsViewItem::parent()
 void WorkbinsViewItem::childCheckBoxChanged()
 {
     int count = files->checkBoxCount();
-    if (count == files->rowCount(QModelIndex()))
+    if (count == files->rowCount())
         checked = Qt::Checked;
     else if (count == 0)
         checked = Qt::Unchecked;

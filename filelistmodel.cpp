@@ -71,6 +71,13 @@ int FileListModel::checkBoxCount() const
     return count;
 }
 
+QJsonObject FileListModel::getFile(int index)
+{
+    if (index >=0 && index < rowCount())
+        return fileList[index];
+    return QJsonObject();
+}
+
 void FileListModel::processIcons()
 {
     for (QList<QJsonObject>::ConstIterator it = fileList.constBegin(); it != fileList.constEnd(); it++)

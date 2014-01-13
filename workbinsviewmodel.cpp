@@ -41,7 +41,7 @@ WorkbinsViewItem *WorkbinsViewModel::invisibleRootItem()
 
 QModelIndex &WorkbinsViewModel::rootIndex()
 {
-    return this->createIndex(0, 0, rootItem);
+    return this->createIndex(0, 0, rootItem).child(0, 0);
 }
 
 void WorkbinsViewModel::childAddedSlot(WorkbinsViewItem* newlyAddedNode)

@@ -12,7 +12,7 @@ public:
     explicit WorkbinsViewModel(QObject *parent = 0);
     ~WorkbinsViewModel();
 
-    QVariant data(const QModelIndex &index, int role) const;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
     QModelIndex index(int row, int column,
                       const QModelIndex &parent = QModelIndex()) const;

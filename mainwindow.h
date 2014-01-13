@@ -9,6 +9,9 @@ class MainWindow;
 }
 
 class IVLEConnector;
+class DownloadsManager;
+class WorkbinsViewItem;
+class QProgressBar;
 
 class MainWindow : public QMainWindow
 {
@@ -23,14 +26,29 @@ private slots:
     void newTokenReceived(QString newToken);
     void on_syncButton_clicked();
     void refreshFileView(QModelIndex index);
+    void on_browseButton_clicked();
+    void syncProgressChange(int);
+    void fileOpener(QModelIndex index);
 
 public slots:
     void syncCompleted();
+    void loadCompleted();
 
 private:
     Ui::MainWindow *ui;
     IVLEConnector* ivle;
+    DownloadsManager* man;
     void initIVLELoginDlg();
+    void loadModules();
+    void syncModules();
+    void syncModule(WorkbinsViewItem* );
+    void syncFolder(WorkbinsViewItem* );
+    void syncFile(QJsonObject &file);
+    QString getFilePath(QModelIndex index);
+    void showErrMsg();
+    void addChild(WorkbinsViewItem* node, QJsonArray &arr);
+    QJsonObject getState();
+    QJsonArray getFiles(WorkbinsViewItem* node);
 };
 
 #endif // MAINWINDOW_H

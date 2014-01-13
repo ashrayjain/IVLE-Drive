@@ -6,6 +6,8 @@
 #include "workbinsviewitem.h"
 #include "workbinsviewmodel.h"
 
+class DownloadsManager;
+
 class IVLEConnector : public QObject
 {
     Q_OBJECT
@@ -16,19 +18,21 @@ private:
     static QString INVALID_ID;
     static QString baseUrl;
 
-    QString token;
+    QString _token;
     STATUS status;
     QNetworkAccessManager *nam;
     WorkbinsViewModel* data;
     WorkbinsViewItem* root;
     int noOfModules;
+    QJsonObject prevState;
 
     void networkConnect(const QString &path, const QUrlQuery &params, const QObject*, const char*);
     void initiateFetchModuleInfo(QJsonObject result);
-    void addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin);
+    void addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin, QJsonObject &mod);
     void addFolderToModel(WorkbinsViewItem* node, QJsonObject &folder);
     void addFileToModel(QList<QJsonObject>& node, QJsonObject &file);
     void addDataToItem(WorkbinsViewItem* node, QString &code, QString &name, QList<QJsonObject> &data = QList<QJsonObject>());
+    int retrieveModuleState(QString code);
 
 public slots:
     void initiateTokenValidation();
@@ -40,12 +44,13 @@ private slots:
 
 signals:
     void tokenChanged(bool tokenValidity);
-    void syncCompleted();
+    void loadCompleted();
 
 public:
     explicit IVLEConnector(QObject *parent = 0);
-    void setToken(QString newToken);
-    void syncWorkbins();
+    void token(QString newToken);
+    QString token();
+    void loadModules();
     WorkbinsViewModel* workbinsModel();
     QModelIndex& rootIndex();
     ~IVLEConnector();

@@ -21,7 +21,9 @@ SOURCES += main.cpp\
     filelistmodel.cpp \
     workbinsviewitem.cpp \
     workbinsviewmodel.cpp \
-    filedownloader.cpp
+    filedownloader.cpp \
+    downloadsmanager.cpp \
+    dirmover.cpp
 
 HEADERS  += mainwindow.h \
     parser.h \
@@ -31,7 +33,9 @@ HEADERS  += mainwindow.h \
     filelistmodel.h \
     workbinsviewitem.h \
     workbinsviewmodel.h \
-    filedownloader.h
+    filedownloader.h \
+    downloadsmanager.h \
+    dirmover.h
 
 FORMS    += mainwindow.ui \
     ivlelogindialog.ui

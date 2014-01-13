@@ -3,7 +3,7 @@
 #include "ivleconnector.h"
 #include "ivlelogindialog.h"
 #include "storage.h"
-#include "filedownloader.h"
+#include "downloadsmanager.h"
 
 
 using namespace std;
@@ -13,21 +13,22 @@ QString IVLEConnector::INVALID_ID   = "00000000-0000-0000-0000-000000000000";
 QString IVLEConnector::baseUrl      = "https://ivle.nus.edu.sg/api/Lapi.svc/";
 
 IVLEConnector::IVLEConnector(QObject *parent) :
-    token(Storage::readToken()),
+    _token(Storage::readToken()),
     QObject(parent),
     status(INVALID_TOKEN),
     nam(new QNetworkAccessManager()),
     data(new WorkbinsViewModel()),
-    root(data->invisibleRootItem())
-{    
+    root(data->invisibleRootItem()),
+    prevState(Storage::loadState())
+{
 }
 
-void IVLEConnector::syncWorkbins() {
-    qDebug() << "I'm Syncing Workbins";
+void IVLEConnector::loadModules() {
+    qDebug() << "I'm Loading Modules";
     if (status==VALID_TOKEN) {
         QUrlQuery query;
         query.addQueryItem("APIKey", API_KEY);
-        query.addQueryItem("AuthToken", token);
+        query.addQueryItem("AuthToken", _token);
         query.addQueryItem("IncludeAllInfo", "false");
         networkConnect("Modules_Student", query, this, SLOT(fetchModules()));
     }
@@ -35,21 +36,35 @@ void IVLEConnector::syncWorkbins() {
         emit tokenChanged(false);
 }
 
-WorkbinsViewModel *IVLEConnector::workbinsModel()
-{
-    return data;
-}
+void IVLEConnector::fetchModules() {
+    QJsonObject obj = Parser::jsonify(qobject_cast<QNetworkReply*>(sender())->readAll());
+    sender()->deleteLater();
+    if (obj["Comments"].toString() == "Invalid login!")
+        emit tokenChanged(false);
+    else {
+        QJsonArray results = obj["Results"].toArray();
+        noOfModules = results.size();
 
-QModelIndex& IVLEConnector::rootIndex()
-{
-    return data->rootIndex().child(0,0);
+        WorkbinsViewItem* rootNode;
+        if (prevState["name"].toString()=="My Modules")
+            rootNode = new WorkbinsViewItem(prevState["check"].toDouble());
+        else
+            rootNode = new WorkbinsViewItem();
+
+        addDataToItem(rootNode, QString("My Modules"), QString(""));
+        root->appendChild(rootNode);
+        root = rootNode;
+
+        for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
+            initiateFetchModuleInfo((*it).toObject());
+    }
 }
 
 void IVLEConnector::initiateFetchModuleInfo(QJsonObject result)
 {
     QUrlQuery query;
     query.addQueryItem("APIKey",        API_KEY);
-    query.addQueryItem("AuthToken",     token);
+    query.addQueryItem("AuthToken",     _token);
     query.addQueryItem("CourseID",      result["ID"].toString());
     query.addQueryItem("CourseCode",    result["CourseCode"].toString());
     query.addQueryItem("CourseName",    result["CourseName"].toString());
@@ -57,9 +72,53 @@ void IVLEConnector::initiateFetchModuleInfo(QJsonObject result)
     networkConnect("Workbins", query, this, SLOT(fetchModuleInfo()));
 }
 
-void IVLEConnector::addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin)
+void IVLEConnector::fetchModuleInfo()
 {
-    WorkbinsViewItem *child = new WorkbinsViewItem();
+    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+    QUrlQuery query(reply->request().url().query());
+
+    int i = retrieveModuleState(query.queryItemValue("CourseCode"));
+    QJsonObject mod;
+    WorkbinsViewItem* module;
+    qDebug() << i;
+    if (i != -1) {
+        mod = prevState["children"].toArray()[i].toObject();
+        qDebug() << mod["check"].toDouble();
+        module = new WorkbinsViewItem(mod["check"].toDouble());
+    }
+    else
+        module = new WorkbinsViewItem();
+
+    addDataToItem(module, query.queryItemValue("CourseCode"), query.queryItemValue("CourseName"));
+    root->appendChild(module);
+
+    QJsonObject obj = Parser::jsonify(reply->readAll());
+    sender()->deleteLater();
+
+    QJsonArray results = obj["Results"].toArray();
+    for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
+        addModuleToModel(module, (*it).toObject(), mod);
+
+    noOfModules--;
+    if (noOfModules == 0)
+        emit loadCompleted();
+}
+
+void IVLEConnector::addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin, QJsonObject &mod)
+{
+    //qDebug() << mod;
+    WorkbinsViewItem * child;
+//    if (mod.empty())
+        child = new WorkbinsViewItem();
+//    else {
+//        QJsonArray children = mod["children"].toArray();
+//        for (QJsonArray::const_iterator it = children.constBegin(); it != children.constEnd(); it++)
+//            if ((*it).toObject()["name"].toString() == workbin["Title"].toString()) {
+//                child = new WorkbinsViewItem((*it).toObject()["check"].toDouble());
+//                break;
+//            }
+//    }
+
     addDataToItem(child, workbin["Title"].toString(), workbin["Title"].toString());
     node->appendChild(child);
 
@@ -92,7 +151,7 @@ void IVLEConnector::addFileToModel(QList<QJsonObject> &node, QJsonObject &file)
     fileData["name"] = file["FileName"].toString();
     fileData["id"] = file["ID"].toString();
     fileData["type"] = file["FileType"].toString();
-    FileDownloader* t = new FileDownloader(token, file["ID"].toString(), file["FileName"].toString(), this);
+    fileData["checked"] = true;
     node.append(fileData);
 }
 
@@ -103,53 +162,30 @@ void IVLEConnector::addDataToItem(WorkbinsViewItem *node, QString &code, QString
     node->setFileData(data);
 }
 
-void IVLEConnector::fetchModules() {
-    QJsonObject obj = Parser::jsonify(qobject_cast<QNetworkReply*>(sender())->readAll());
-    sender()->deleteLater();
-    if (obj["Comments"].toString() == "Invalid login!")
-        emit tokenChanged(false);
-    else {
-        QJsonArray results = obj["Results"].toArray();
-        noOfModules = results.size();
-
-        WorkbinsViewItem* rootNode = new WorkbinsViewItem();
-        addDataToItem(rootNode, QString("My Modules"), QString(""));
-        root->appendChild(rootNode);
-        root = rootNode;
-
-        for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
-            initiateFetchModuleInfo((*it).toObject());
-    }
-}
-
-void IVLEConnector::fetchModuleInfo()
+int IVLEConnector::retrieveModuleState(QString code)
 {
-    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-    QUrlQuery query(reply->request().url().query());
-
-    WorkbinsViewItem* module = new WorkbinsViewItem();
-    addDataToItem(module, query.queryItemValue("CourseCode"), query.queryItemValue("CourseName"));
-    root->appendChild(module);
-
-    QJsonObject obj = Parser::jsonify(reply->readAll());
-    sender()->deleteLater();
-
-    QJsonArray results = obj["Results"].toArray();
-    for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
-        addModuleToModel(module, (*it).toObject());
-
-    noOfModules--;
-    if (noOfModules == 0)
-        emit syncCompleted();
+    int ret = -1;
+    if (prevState["children"].isArray()) {
+        QJsonArray modules = prevState["children"].toArray();
+        QJsonObject modState = modules[0].toObject();
+        for (ret = 1; ret <= modules.size() && code != modState["name"].toString(); ret++) {
+            qDebug() << modState["name"].toString();
+            modState = modules[ret].toObject();
+        }
+        if (ret > modules.size())
+            ret = -1;
+    }
+    qDebug() << code << ret;
+    return ret;
 }
 
 void IVLEConnector::initiateTokenValidation() {
-    if(token=="")
+    if(_token=="")
         emit tokenChanged(false);
     else {
         QUrlQuery query;
         query.addQueryItem("APIKey", API_KEY);
-        query.addQueryItem("Token", token);
+        query.addQueryItem("Token", _token);
         networkConnect("Validate", query, this, SLOT(completedTokenValidation()));
 
     }
@@ -162,22 +198,35 @@ void IVLEConnector::networkConnect(const QString &path, const QUrlQuery &params,
     QObject::connect(reply, SIGNAL(finished()), receiver, slot);
 }
 
-void IVLEConnector::setToken(QString newToken) {
-    token = newToken;
+void IVLEConnector::token(QString newToken) {
+    _token = newToken;
     status = VALID_TOKEN;
-    Storage::writeToken(token);
+    Storage::writeToken(_token);
     emit tokenChanged(true);
+}
+
+QString IVLEConnector::token()
+{
+    return _token;
 }
 
 void IVLEConnector::completedTokenValidation() {
     QJsonObject obj = Parser::jsonify(qobject_cast<QNetworkReply*>(sender())->readAll());
     sender()->deleteLater();
     if (obj["Success"].toBool() == true)
-        setToken(obj["Token"].toString());
+        token(obj["Token"].toString());
     else
         emit tokenChanged(false);
 }
 
 IVLEConnector::~IVLEConnector() {
     delete nam;
+}
+
+WorkbinsViewModel *IVLEConnector::workbinsModel() {
+    return data;
+}
+
+QModelIndex& IVLEConnector::rootIndex() {
+    return data->rootIndex();
 }

@@ -10,7 +10,9 @@ class WorkbinsViewItem : public QObject
 {
     Q_OBJECT
 public:
-    explicit WorkbinsViewItem(WorkbinsViewItem *parent = 0);
+    explicit WorkbinsViewItem(
+            QVariant _checked = QVariant(Qt::Checked),
+            WorkbinsViewItem *parent = 0);
     ~WorkbinsViewItem();
     void appendChild(WorkbinsViewItem *child);
     WorkbinsViewItem *child(int row);
