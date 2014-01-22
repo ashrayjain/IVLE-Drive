@@ -21,6 +21,7 @@ void DownloadsManager::initManager()
         downloadDir.setPath(dir);
     else
         downloadDir.setPath(downloadDir.currentPath());
+    qDebug() << downloadDir.path();
     emit downloadDirChanged(downloadDir.path());
 }
 

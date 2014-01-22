@@ -28,9 +28,9 @@ private:
 
     void networkConnect(const QString &path, const QUrlQuery &params, const QObject*, const char*);
     void initiateFetchModuleInfo(QJsonObject result);
-    void addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin, QJsonObject &mod);
-    void addFolderToModel(WorkbinsViewItem* node, QJsonObject &folder);
-    void addFileToModel(QList<QJsonObject>& node, QJsonObject &file);
+    void addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin, QJsonObject &prevModState);
+    void addFolderToModel(WorkbinsViewItem* node, QJsonObject &folder, QJsonObject &prevFolderState = QJsonObject());
+    void addFileToModel(QList<QJsonObject>& node, QJsonObject &file, bool prevFileState = true);
     void addDataToItem(WorkbinsViewItem* node, QString &code, QString &name, QList<QJsonObject> &data = QList<QJsonObject>());
     int retrieveModuleState(QString code);
 

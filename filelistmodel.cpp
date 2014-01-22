@@ -40,8 +40,8 @@ bool FileListModel::setData(const QModelIndex &index, const QVariant &value, int
 void FileListModel::setCheckedAll(const QVariant &val)
 {
     bool valToSet = (val == Qt::Checked)?true:false;
-    for (QList<QJsonObject>::Iterator it = fileList.begin(); it != fileList.end(); it++)
-        (*it)["checked"] = valToSet;
+    foreach (QJsonObject val, fileList)
+        val["checked"] = valToSet;
     emit dataChanged(index(0), index(rowCount(QModelIndex())));
 }
 
@@ -65,8 +65,8 @@ Qt::ItemFlags FileListModel::flags(const QModelIndex &index) const
 int FileListModel::checkBoxCount() const
 {
     int count = 0;
-    for (QList<QJsonObject>::ConstIterator it = fileList.constBegin(); it != fileList.constEnd(); it++)
-        if ((*it)["checked"].toBool() == true)
+    foreach (QJsonObject val, fileList)
+        if (val["checked"].toBool() == true)
             count++;
     return count;
 }
@@ -80,8 +80,8 @@ QJsonObject FileListModel::getFile(int index)
 
 void FileListModel::processIcons()
 {
-    for (QList<QJsonObject>::ConstIterator it = fileList.constBegin(); it != fileList.constEnd(); it++)
-        iconsList.append(Storage::getFileIcon((*it)["type"].toString()));
+    foreach (QJsonObject val, fileList)
+        iconsList.append(Storage::getFileIcon(val["type"].toString()));
 }
 
 bool FileListModel::lessThan(const QJsonObject& t1, const QJsonObject& t2)

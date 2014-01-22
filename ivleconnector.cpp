@@ -55,8 +55,8 @@ void IVLEConnector::fetchModules() {
         root->appendChild(rootNode);
         root = rootNode;
 
-        for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
-            initiateFetchModuleInfo((*it).toObject());
+        foreach (QJsonValue val, results)
+            initiateFetchModuleInfo(val.toObject());
     }
 }
 
@@ -80,10 +80,8 @@ void IVLEConnector::fetchModuleInfo()
     int i = retrieveModuleState(query.queryItemValue("CourseCode"));
     QJsonObject mod;
     WorkbinsViewItem* module;
-    qDebug() << i;
     if (i != -1) {
         mod = prevState["children"].toArray()[i].toObject();
-        qDebug() << mod["check"].toDouble();
         module = new WorkbinsViewItem(mod["check"].toDouble());
     }
     else
@@ -96,62 +94,91 @@ void IVLEConnector::fetchModuleInfo()
     sender()->deleteLater();
 
     QJsonArray results = obj["Results"].toArray();
-    for (QJsonArray::const_iterator it = results.constBegin(); it != results.constEnd(); it++)
-        addModuleToModel(module, (*it).toObject(), mod);
+    foreach (QJsonValue val, results)
+        addModuleToModel(module, val.toObject(), mod);
 
     noOfModules--;
     if (noOfModules == 0)
         emit loadCompleted();
 }
 
-void IVLEConnector::addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin, QJsonObject &mod)
+void IVLEConnector::addModuleToModel(WorkbinsViewItem* node, QJsonObject &workbin, QJsonObject &prevModState)
 {
-    //qDebug() << mod;
     WorkbinsViewItem * child;
-//    if (mod.empty())
+    QJsonArray childState;
+    if (prevModState.empty())
         child = new WorkbinsViewItem();
-//    else {
-//        QJsonArray children = mod["children"].toArray();
-//        for (QJsonArray::const_iterator it = children.constBegin(); it != children.constEnd(); it++)
-//            if ((*it).toObject()["name"].toString() == workbin["Title"].toString()) {
-//                child = new WorkbinsViewItem((*it).toObject()["check"].toDouble());
-//                break;
-//            }
-//    }
+    else {
+        QJsonArray children = prevModState["children"].toArray();
+        foreach (QJsonValue v, children)
+            if (v.toObject()["name"].toString() == workbin["Title"].toString()) {
+                child = new WorkbinsViewItem(v.toObject()["check"].toDouble());
+                childState = v.toObject()["children"].toArray();
+                break;
+            }
+    }
 
     addDataToItem(child, workbin["Title"].toString(), workbin["Title"].toString());
     node->appendChild(child);
 
     QJsonArray folders = workbin["Folders"].toArray();
-    for (QJsonArray::const_iterator it = folders.constBegin(); it != folders.constEnd(); it++)
-        addFolderToModel(child, (*it).toObject());
+    if (childState.empty())
+        foreach (QJsonValue val, folders)
+            addFolderToModel(child, val.toObject());
+    else
+        foreach (QJsonValue val, folders)
+            foreach (QJsonValue childVal, childState)
+                if (childVal.toObject()["name"].toString() == val.toObject()["FolderName"].toString())
+                     addFolderToModel(child, val.toObject(), childVal.toObject());
 }
 
-void IVLEConnector::addFolderToModel(WorkbinsViewItem *node, QJsonObject &folder)
+void IVLEConnector::addFolderToModel(WorkbinsViewItem *node, QJsonObject &folder, QJsonObject &prevFolderState)
 {
-    WorkbinsViewItem *child = new WorkbinsViewItem();
+    WorkbinsViewItem *child;
+    QJsonArray childFolders;
+    QJsonArray childFiles;
+    if (prevFolderState.empty())
+        child = new WorkbinsViewItem();
+    else {
+        child = new WorkbinsViewItem(prevFolderState["check"].toDouble());
+        childFolders = prevFolderState["children"].toArray();
+        childFiles = prevFolderState["files"].toArray();
+    }
     addDataToItem(child, folder["FolderName"].toString(), folder["FolderName"].toString());
     node->appendChild(child);
 
     QJsonArray folders = folder["Folders"].toArray();
-    for (QJsonArray::const_iterator it = folders.constBegin(); it != folders.constEnd(); it++)
-        addFolderToModel(child, (*it).toObject());
+    if (childFolders.empty())
+        foreach (QJsonValue val, folders)
+            addFolderToModel(child, val.toObject());
+    else
+        foreach (QJsonValue val, folders)
+            foreach (QJsonValue childVal, childFolders)
+                if (childVal.toObject()["name"].toString() == val.toObject()["FolderName"].toString())
+                     addFolderToModel(child, val.toObject(), childVal.toObject());
+
 
     QJsonArray files = folder["Files"].toArray();
     QList<QJsonObject> filesData;
-    for (QJsonArray::const_iterator it = files.constBegin(); it != files.constEnd(); it++)
-        addFileToModel(filesData, (*it).toObject());
+    if (childFiles.empty())
+        foreach (QJsonValue val, files)
+            addFileToModel(filesData, val.toObject());
+    else
+        foreach (QJsonValue val, files)
+            foreach (QJsonValue childVal, childFiles)
+                if (childVal.toObject()["id"].toString() == val.toObject()["ID"].toString())
+                    addFileToModel(filesData, val.toObject(), childVal.toObject()["check"].toBool());
 
     addDataToItem(child, folder["FolderName"].toString(), folder["FolderName"].toString(), filesData);
 }
 
-void IVLEConnector::addFileToModel(QList<QJsonObject> &node, QJsonObject &file)
+void IVLEConnector::addFileToModel(QList<QJsonObject> &node, QJsonObject &file, bool prevFileState)
 {
     QJsonObject fileData;
     fileData["name"] = file["FileName"].toString();
     fileData["id"] = file["ID"].toString();
     fileData["type"] = file["FileType"].toString();
-    fileData["checked"] = true;
+    fileData["checked"] = prevFileState;
     node.append(fileData);
 }
 
@@ -168,14 +195,12 @@ int IVLEConnector::retrieveModuleState(QString code)
     if (prevState["children"].isArray()) {
         QJsonArray modules = prevState["children"].toArray();
         QJsonObject modState = modules[0].toObject();
-        for (ret = 1; ret <= modules.size() && code != modState["name"].toString(); ret++) {
-            qDebug() << modState["name"].toString();
-            modState = modules[ret].toObject();
-        }
-        if (ret > modules.size())
+        for (ret = 0; ret < modules.size(); modState = modules[++ret].toObject())
+            if (code == modState["name"].toString())
+                break;
+        if (ret >= modules.size())
             ret = -1;
     }
-    qDebug() << code << ret;
     return ret;
 }
 
