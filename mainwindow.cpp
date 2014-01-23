@@ -81,13 +81,17 @@ void MainWindow::syncModules()
 void MainWindow::syncModule(WorkbinsViewItem * node)
 {
     if (node->data(Qt::CheckStateRole) != Qt::Unchecked) {
+        qDebug() << "Before" << man->dir();
         man->changeToDir(node->data(0).toString()+" "+node->data(1).toString());
+        qDebug() << "After" << man->dir();
         for (int i = 0; i < node->childCount(); i++)
             syncFolder(node->child(i));
         man->upDir();
     }
-    else
+    else {
+        //qDebug() << "Removing " << node->data(0).toString()+" "+node->data(1).toString() << " in " << man->dir();
         man->removeDir(node->data(0).toString()+" "+node->data(1).toString());
+    }
 }
 
 void MainWindow::syncFolder(WorkbinsViewItem * node)

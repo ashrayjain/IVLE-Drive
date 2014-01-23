@@ -43,6 +43,7 @@ void DownloadsManager::downloadFile(QString token, QString id, QString fileName)
 
 void DownloadsManager::changeToDir(QString folderName)
 {
+    folderName.replace(QRegExp("[<|>|:|\"|/|\\|||?|*]"), "");
     if (!downloadDir.cd(folderName)) {
         downloadDir.mkdir(folderName);
         downloadDir.cd(folderName);
@@ -51,6 +52,7 @@ void DownloadsManager::changeToDir(QString folderName)
 
 void DownloadsManager::removeDir(QString dirName)
 {
+    dirName.replace(QRegExp("[<|>|:|\"|/|\\|||?|*]"), "");
     changeToDir(dirName);
 
     foreach (QString entry, downloadDir.entryList(QDir::NoDotAndDotDot|QDir::Dirs|QDir::Files))
@@ -82,8 +84,10 @@ void DownloadsManager::executeDownloads(QString token)
         emit fileDownloaded();
     }
     else
-        for (;!downloads.empty();downloads.pop_back())
+        for (;!downloads.empty();downloads.pop_back()) {
+            qDebug() << downloads.last().second;
             downloadFile(token, downloads.last().first, downloads.last().second);
+       }
 }
 
 void DownloadsManager::upDir()
